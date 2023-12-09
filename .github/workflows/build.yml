@@ -2,10 +2,19 @@ name: Vert.x Daily Digest
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 jobs:
   build:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -16,4 +25,13 @@ jobs:
         distribution: 'temurin'
         cache: maven
     - name: Build with Maven
-      run: mvn -B package exec:java
+      run: mvn -B package exec:exec com.ruleoftech:markdown-page-generator-plugin:generate
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v2
+      with:
+        path: './target/website/html'
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v3
